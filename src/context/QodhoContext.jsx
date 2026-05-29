@@ -214,10 +214,9 @@ export function QodhoProvider({ children }) {
       setToken(data.token);
       setUser(data.user);
 
-      // Migrate existing local offline progress to cloud database
-      await syncLocalDataToServer(data.token, state);
-
-      // Fetch fresh calculated data from Turso
+      // Langsung fetch data dari server — JANGAN sync local ke server
+      // karena setelah logout, state sudah direset ke default (nilai 25)
+      // dan akan menimpa data asli user di database.
       await fetchQodhoData(data.token);
       return { success: true };
     } catch (err) {
@@ -225,7 +224,7 @@ export function QodhoProvider({ children }) {
     } finally {
       setSyncing(false);
     }
-  }, [state, syncLocalDataToServer, fetchQodhoData]);
+  }, [fetchQodhoData]);
 
   const logout = useCallback(() => {
     localStorage.removeItem('qodhoku_token');
