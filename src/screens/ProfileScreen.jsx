@@ -8,6 +8,7 @@ import {
   IconBook, IconShield, IconChevronRight, IconClock
 } from '../components/Icons';
 import { useNavigation } from '../context/NavigationContext';
+import InstallPWA from '../components/InstallPWA';
 
 const SETTING_ITEMS = [
   { icon: IconUser,    label: 'Account & Security',         color: 'var(--primary-color)' },
@@ -181,6 +182,14 @@ const ProfileScreen = () => {
             <Badge icon={<IconBook size={22} />} label="Qur'an" color="#60a5fa" earned={streak.current >= 3} />
             <Badge icon={<IconShield size={22} />} label="Konsisten" color="#a78bfa" earned={streak.best >= 7} />
           </div>
+        </div>
+
+        {/* Install App Section */}
+        <div className="mb-md">
+          <p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.75rem' }}>
+            Aplikasi
+          </p>
+          <InstallPWA />
         </div>
 
         {/* Settings list */}

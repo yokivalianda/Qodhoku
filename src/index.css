@@ -1223,3 +1223,122 @@ body {
   font-weight: 600;
   border: 1px solid var(--border-color-hover);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE FRIENDLY & PWA
+   ═══════════════════════════════════════════════════════════ */
+
+/* iOS safe area insets support */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+/* Better tap target on mobile */
+button, [role="button"], .nav-item, .setting-item, .prayer-card,
+.setup-option-card, .target-card, .calendar-cell {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Prevent text selection on interactive elements */
+.nav-item, .btn-primary, .btn-secondary, .btn-icon, .nav-fab {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Smooth scrolling on iOS */
+.screen-scroll > .screen-container,
+.screen-container {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* PWA Standalone mode — padding for notch/home indicator */
+@media (display-mode: standalone) {
+  body {
+    padding-top: var(--sat);
+  }
+
+  .bottom-nav {
+    padding-bottom: max(var(--sab), 8px);
+    height: calc(68px + max(var(--sab), 8px));
+  }
+
+  .screen-scroll > .screen-container {
+    padding-bottom: calc(90px + max(var(--sab), 8px));
+  }
+
+  /* Hide browser chrome hint on standalone */
+  #root {
+    box-shadow: none;
+  }
+}
+
+/* Fullscreen mobile: no artificial max-width border shadow */
+@media (max-width: 430px) {
+  body {
+    background: var(--bg-body);
+    align-items: flex-start;
+  }
+
+  #root {
+    max-width: 100%;
+    min-height: 100dvh; /* dynamic viewport height */
+    box-shadow: none;
+  }
+
+  .screen-container {
+    padding: 1.25rem 1rem;
+  }
+
+  .screen-scroll > .screen-container {
+    padding-bottom: calc(86px + var(--sab, 0px));
+  }
+
+  .title { font-size: 1.5rem; }
+
+  /* Tighter grid on small screens */
+  .stat-mini-grid { gap: 0.5rem; }
+  .grid-2 { gap: 0.625rem; }
+  .calendar-grid { gap: 4px; }
+  .calendar-cell { font-size: 0.72rem; }
+
+  /* Slightly smaller padding on cards */
+  .card { padding: 1rem; }
+  .card-glow { padding: 1.25rem; }
+  .progress-card { padding: 1.5rem 1.25rem; }
+  .profile-hero { padding: 1.5rem 1.25rem 1.25rem; }
+
+  /* Bottom nav same size but full width */
+  .bottom-nav {
+    left: 0;
+    right: 0;
+    padding-bottom: max(var(--sab), 4px);
+  }
+}
+
+/* Very small screens */
+@media (max-width: 360px) {
+  .screen-container { padding: 1rem 0.875rem; }
+  .title { font-size: 1.35rem; }
+  .nav-item { width: 52px; }
+  .nav-fab { width: 46px; height: 46px; border-radius: 14px; }
+}
+
+/* Landscape mode on mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  .onboarding-illustration { height: 140px; }
+  .profile-avatar { width: 64px; height: 64px; }
+  .header { margin-bottom: 1rem; }
+  .header-icon { padding: 0.75rem; }
+}
+
+/* High DPI / Retina */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .progress-ring-circle {
+    shape-rendering: geometricPrecision;
+  }
+}
+
