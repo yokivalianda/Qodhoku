@@ -165,7 +165,8 @@ body {
   width: 100%;
   max-width: 430px;
   background: var(--bg-app);
-  min-height: 100vh;
+  height: 100dvh;
+  height: 100vh; /* fallback */
   position: relative;
   box-shadow:
     0 0 0 1px rgba(16, 185, 129, 0.08),
@@ -392,10 +393,12 @@ body {
    BOTTOM NAV
    ═══════════════════════════════════════════════════════════ */
 .bottom-nav {
-  position: absolute;
+  position: fixed;
   bottom: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
   height: 68px;
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
@@ -404,7 +407,7 @@ body {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  z-index: 10;
+  z-index: 100;
 }
 
 .nav-item {
@@ -1285,7 +1288,8 @@ button, [role="button"], .nav-item, .setting-item, .prayer-card,
 
   #root {
     max-width: 100%;
-    min-height: 100dvh; /* dynamic viewport height */
+    height: 100dvh;
+    height: 100vh; /* fallback */
     box-shadow: none;
   }
 
@@ -1311,11 +1315,11 @@ button, [role="button"], .nav-item, .setting-item, .prayer-card,
   .progress-card { padding: 1.5rem 1.25rem; }
   .profile-hero { padding: 1.5rem 1.25rem 1.25rem; }
 
-  /* Bottom nav same size but full width */
+  /* Bottom nav: full width, fixed, safe area aware */
   .bottom-nav {
-    left: 0;
-    right: 0;
+    max-width: 100%;
     padding-bottom: max(var(--sab), 4px);
+    height: calc(68px + max(var(--sab), 4px));
   }
 }
 
