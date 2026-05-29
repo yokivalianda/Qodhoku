@@ -26,6 +26,7 @@ export async function initSchema() {
       email         TEXT    UNIQUE NOT NULL,
       password_hash TEXT    NOT NULL,
       daily_target  INTEGER NOT NULL DEFAULT 3,
+      has_onboarded INTEGER NOT NULL DEFAULT 0,
       created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
     )`,
     `CREATE TABLE IF NOT EXISTS prayer_totals (
@@ -53,6 +54,15 @@ export async function initSchema() {
 
   for (const sql of stmts) {
     await db.execute(sql);
+  }
+
+  // Migrasi: tambah kolom has_onboarded ke tabel users yang sudah ada
+  // (ALTER TABLE IF NOT EXISTS tidak didukung SQLite, pakai try/catch)
+  try {
+    await db.execute(`ALTER TABLE users ADD COLUMN has_onboarded INTEGER NOT NULL DEFAULT 0`);
+    console.log('✅ Migrated: added has_onboarded column');
+  } catch {
+    // Kolom sudah ada — aman diabaikan
   }
 
   console.log('✅ Database schema ready');

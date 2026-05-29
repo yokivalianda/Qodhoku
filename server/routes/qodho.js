@@ -72,12 +72,13 @@ qodho.get('/', async (c) => {
     // 1. Ensure prayer totals row exists
     await ensurePrayerTotals(user.id);
 
-    // 2. Fetch daily_target from users
+    // 2. Fetch daily_target & has_onboarded from users
     const userRes = await db.execute({
-      sql: 'SELECT daily_target FROM users WHERE id = ?',
+      sql: 'SELECT daily_target, has_onboarded FROM users WHERE id = ?',
       args: [user.id],
     });
     const dailyTarget = Number(userRes.rows[0]?.daily_target ?? 3);
+    const hasOnboarded = Boolean(Number(userRes.rows[0]?.has_onboarded ?? 0));
 
     // 3. Fetch all total targets for each prayer
     const totalsRes = await db.execute({
@@ -153,6 +154,7 @@ qodho.get('/', async (c) => {
       dailyTarget,
       streak,
       history,
+      hasOnboarded,
     });
 
   } catch (err) {
@@ -227,6 +229,21 @@ qodho.post('/', async (c) => {
   } catch (err) {
     console.error('Add qodho error:', err);
     return c.json({ error: 'Server error saving qodho entry' }, 500);
+  }
+});
+
+/* ── PUT /api/qodho/onboarding ──────────────────────────── */
+qodho.put('/onboarding', async (c) => {
+  const user = c.get('user');
+  try {
+    await db.execute({
+      sql: 'UPDATE users SET has_onboarded = 1 WHERE id = ?',
+      args: [user.id],
+    });
+    return c.json({ success: true });
+  } catch (err) {
+    console.error('Update onboarding error:', err);
+    return c.json({ error: 'Server error updating onboarding status' }, 500);
   }
 });
 

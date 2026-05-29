@@ -90,7 +90,9 @@ export function QodhoProvider({ children }) {
           prayers: data.prayers,
           dailyTarget: data.dailyTarget,
           streak: data.streak,
-          history: data.history
+          history: data.history,
+          // hasOnboarded dari server menang atas local — agar clear cookies tidak reset onboarding
+          hasOnboarded: data.hasOnboarded ?? prev.hasOnboarded,
         }));
       }
     } catch (err) {
@@ -404,6 +406,15 @@ export function QodhoProvider({ children }) {
 
   const setOnboarded = useCallback(() => {
     setState(prev => ({ ...prev, hasOnboarded: true }));
+
+    // Sync ke server jika user sedang login — agar tidak hilang saat clear cookies
+    const activeToken = localStorage.getItem('qodhoku_token');
+    if (activeToken) {
+      fetch(`${API_URL}/qodho/onboarding`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${activeToken}` },
+      }).catch(err => console.error('Failed to sync onboarding status:', err));
+    }
   }, []);
 
   const resetData = useCallback(async () => {
