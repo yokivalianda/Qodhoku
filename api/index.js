@@ -1,38 +1,55 @@
 import app from '../server/app.js';
 
-// Vercel Serverless Function handler
-// Hono app.fetch sudah kompatibel dengan Web Fetch API yang dipakai Vercel
+// Matikan body parser bawaan Vercel agar kita bisa baca raw stream
+// Tanpa ini, req.on('data') tidak pernah fire karena body sudah di-consume Vercel
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+// Vercel Serverless Function handler: Node IncomingMessage → Web Fetch API → Hono
 export default async function handler(req, res) {
-  // Convert Node IncomingMessage → Web Request
-  const url = `https://${req.headers.host}${req.url}`;
-  
+  // 1. Build full URL
+  const proto = req.headers['x-forwarded-proto'] || 'https';
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const url = `${proto}://${host}${req.url}`;
+
+  // 2. Convert headers
   const headers = new Headers();
   for (const [key, value] of Object.entries(req.headers)) {
-    if (value) headers.set(key, Array.isArray(value) ? value.join(', ') : value);
+    if (value == null) continue;
+    headers.set(key, Array.isArray(value) ? value.join(', ') : value);
   }
 
-  let body = undefined;
+  // 3. Read body as raw Buffer (bodyParser: false → stream is intact)
+  let bodyBuffer = null;
   if (req.method !== 'GET' && req.method !== 'HEAD') {
-    body = await new Promise((resolve) => {
+    bodyBuffer = await new Promise((resolve, reject) => {
       const chunks = [];
       req.on('data', (chunk) => chunks.push(chunk));
       req.on('end', () => resolve(Buffer.concat(chunks)));
+      req.on('error', reject);
     });
   }
 
+  // 4. Create Web Request for Hono
   const webReq = new Request(url, {
     method: req.method,
     headers,
-    body: body && body.length > 0 ? body : undefined,
+    body: bodyBuffer && bodyBuffer.length > 0 ? bodyBuffer : undefined,
   });
 
-  // Call Hono
+  // 5. Jalankan Hono
   const webRes = await app.fetch(webReq);
 
-  // Convert Web Response → Node ServerResponse
+  // 6. Convert Web Response → Node ServerResponse
   res.status(webRes.status);
   webRes.headers.forEach((value, key) => {
-    res.setHeader(key, value);
+    // Hindari setting header yang tidak valid di Node
+    if (key.toLowerCase() !== 'content-encoding') {
+      res.setHeader(key, value);
+    }
   });
 
   const responseBody = await webRes.arrayBuffer();
