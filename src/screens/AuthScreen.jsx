@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigation } from '../context/NavigationContext';
 import { useQodho } from '../context/QodhoContext';
-import { IconChevronLeft, IconUser, IconCheck, IconShield, IconClock } from '../components/Icons';
+import { IconUser, IconCheck, IconShield, IconClock } from '../components/Icons';
 
 const AuthScreen = () => {
   const { navigate } = useNavigation();
-  const { token, user, syncing, login, register, logout } = useQodho();
+  const { token, user, syncing, login, register, logout, hasOnboarded } = useQodho();
 
   const [activeTab, setActiveTab] = useState('login'); // 'login' or 'register'
   const [name, setName] = useState('');
@@ -32,16 +32,21 @@ const AuthScreen = () => {
     if (activeTab === 'login') {
       const res = await login(email, password);
       if (res.success) {
-        setSuccessMsg('Berhasil masuk! Menghubungkan database...');
-        setTimeout(() => navigate('profile'), 1200);
+        setSuccessMsg('Berhasil masuk! Memuat data...');
+        setTimeout(() => {
+          // Jika sudah pernah onboarding → langsung ke home
+          // Jika belum → jalani onboarding dulu
+          navigate(hasOnboarded ? 'home' : 'onboarding');
+        }, 800);
       } else {
         setErrorMsg(res.error || 'Gagal masuk. Periksa kembali email & password.');
       }
     } else {
       const res = await register(name, email, password);
       if (res.success) {
-        setSuccessMsg('Pendaftaran berhasil! Mengunggah riwayat sholat...');
-        setTimeout(() => navigate('profile'), 1500);
+        setSuccessMsg('Akun berhasil dibuat! Memulai setup...');
+        // User baru → selalu onboarding
+        setTimeout(() => navigate('onboarding'), 800);
       } else {
         setErrorMsg(res.error || 'Gagal mendaftar. Email mungkin sudah digunakan.');
       }
@@ -51,25 +56,23 @@ const AuthScreen = () => {
   return (
     <div className="screen-scroll">
       <div className="screen-container" style={{ paddingBottom: '30px' }}>
-        
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-          <button 
-            className="btn-icon" 
-            onClick={() => navigate('profile')}
-            style={{ 
-              width: '36px', height: '36px', 
-              borderRadius: '10px', 
-              background: 'var(--bg-surface)', 
-              border: '1px solid var(--border-color)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}
-          >
-            <IconChevronLeft size={20} color="var(--text-primary)" />
-          </button>
-          <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-            {token ? 'Detail Akun' : 'Sinkronisasi Cloud'}
+
+        {/* Header — branding saja, tidak ada back button di halaman awal */}
+        <div style={{ textAlign: 'center', marginBottom: '2rem', paddingTop: '0.5rem' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: '56px', height: '56px', borderRadius: '18px',
+            background: 'linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.05))',
+            border: '1px solid rgba(16,185,129,0.35)',
+            fontSize: '1.75rem', marginBottom: '0.75rem',
+            boxShadow: '0 0 24px rgba(16,185,129,0.2)',
+          }}>🕌</div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
+            Qodho<span style={{ color: 'var(--primary-color)' }}>Ku</span>
           </h1>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+            {token ? 'Detail Akun Cloud' : 'Masuk atau daftar untuk memulai'}
+          </p>
         </div>
 
         {token ? (
@@ -169,7 +172,7 @@ const AuthScreen = () => {
                 className="btn-primary" 
                 onClick={() => {
                   logout();
-                  navigate('profile');
+                  navigate('auth');
                 }}
                 style={{ 
                   background: 'rgba(248,113,113,0.12)', 
@@ -315,7 +318,6 @@ const AuthScreen = () => {
                 />
               </div>
 
-              {/* Submit Button */}
               <button 
                 type="submit" 
                 className="btn-primary" 
@@ -331,13 +333,26 @@ const AuthScreen = () => {
                       borderRadius: '50%',
                       animation: 'spin 0.8s linear infinite'
                     }} />
-                    Sinkronisasi data...
+                    Memproses...
                   </span>
                 ) : (
-                  activeTab === 'login' ? 'Masuk & Sinkronkan 🚀' : 'Daftar & Upload Riwayat ☁️'
+                  activeTab === 'login' ? 'Masuk & Sinkronkan 🚀' : 'Daftar & Mulai ☁️'
                 )}
               </button>
             </form>
+
+            {/* Skip — lanjut tanpa akun (offline mode) */}
+            <button
+              onClick={() => navigate(hasOnboarded ? 'home' : 'onboarding')}
+              style={{
+                background: 'none', border: 'none',
+                color: 'var(--text-muted)', fontSize: '0.82rem',
+                padding: '0.75rem', width: '100%', cursor: 'pointer',
+                textDecoration: 'underline', textUnderlineOffset: '3px',
+              }}
+            >
+              Lanjut tanpa akun (offline)
+            </button>
 
             {/* Explanatory Info Card */}
             <div className="card" style={{ background: 'var(--bg-surface)', padding: '1rem' }}>

@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 const NavigationContext = createContext(null);
 
 export function NavigationProvider({ children }) {
-  const [currentScreen, setScreen] = useState('onboarding');
+  const [currentScreen, setScreen] = useState('auth');
   const [prevScreen, setPrevScreen] = useState(null);
 
   const navigate = useCallback((screen) => {

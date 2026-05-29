@@ -16,13 +16,15 @@ import './App.css';
 
 function AppRouter() {
   const { currentScreen, navigate } = useNavigation();
-  const { hasOnboarded } = useQodho();
+  const { hasOnboarded, token } = useQodho();
 
-  // On first load, if user already onboarded, jump straight to home
   useEffect(() => {
-    if (hasOnboarded && currentScreen === 'onboarding') {
+    // Sudah onboarding dan screen masih di auth/onboarding → langsung ke home
+    if (hasOnboarded && (currentScreen === 'onboarding' || currentScreen === 'auth')) {
       navigate('home');
     }
+    // Belum login dan di halaman awal → tampilkan auth
+    // (NavigationProvider sudah default ke 'auth', tidak perlu redirect)
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renderScreen = () => {
