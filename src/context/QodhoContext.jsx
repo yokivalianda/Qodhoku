@@ -231,8 +231,9 @@ export function QodhoProvider({ children }) {
     localStorage.removeItem('qodhoku_user');
     setToken(null);
     setUser(null);
-    // Reset state to default State
-    setState(defaultState);
+    // Reset data akun ke default, tapi PERTAHANKAN hasOnboarded
+    // Onboarding adalah flag perangkat — cukup dilakukan sekali, tidak ikut reset saat logout
+    setState(prev => ({ ...defaultState, hasOnboarded: prev.hasOnboarded }));
   }, []);
 
   const addQodho = useCallback(async (prayerKey, count = 1) => {
