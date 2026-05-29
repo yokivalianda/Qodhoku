@@ -52,7 +52,7 @@ const AuthScreen = () => {
 
   return (
     <div className="screen-scroll">
-      <div className="screen-container" style={{ paddingBottom: '30px' }}>
+      <div className="screen-container">
 
         {/* Header — branding saja, tidak ada back button di halaman awal */}
         <div style={{ textAlign: 'center', marginBottom: '2rem', paddingTop: '0.5rem' }}>

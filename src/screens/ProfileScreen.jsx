@@ -106,7 +106,7 @@ const ProfileScreen = () => {
 
   return (
     <div className="screen-scroll">
-      <div className="screen-container" style={{ paddingBottom: '90px', overflowY: 'auto' }}>
+      <div className="screen-container">
 
         {/* Top header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>

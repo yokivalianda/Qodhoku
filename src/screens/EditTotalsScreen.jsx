@@ -58,7 +58,7 @@ const EditTotalsScreen = () => {
 
   return (
     <div className="screen-scroll">
-      <div className="screen-container" style={{ paddingBottom: '30px' }}>
+      <div className="screen-container">
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', marginBottom: '1.75rem' }}>

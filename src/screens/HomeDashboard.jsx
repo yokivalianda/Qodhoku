@@ -37,7 +37,7 @@ const HomeDashboard = () => {
 
   return (
     <div className="screen-scroll">
-      <div className="screen-container" style={{ paddingBottom: '90px', overflowY: 'auto' }}>
+      <div className="screen-container">
 
         {/* ── Header ── */}
         <div className="greeting">
@@ -124,13 +124,18 @@ const HomeDashboard = () => {
         </div>
 
         <div className="grid-2 mb-lg">
-          {Object.entries(prayers).map(([key, val]) => {
+          {Object.entries(prayers).map(([key, val], idx) => {
             const meta = PRAYER_META[key];
             if (!meta) return null;
             const { Icon: PrayerIcon } = meta;
             const pct = val.total > 0 ? (val.completed / val.total) * 100 : 0;
+            const isLastOdd = idx === 4; // Isya (5th item) spans 2 columns nicely
             return (
-              <div className="prayer-card" key={key}>
+              <div
+                className="prayer-card"
+                key={key}
+                style={isLastOdd ? { gridColumn: 'span 2' } : undefined}
+              >
                 <div className="prayer-card-header">
                   <span style={{ marginRight: '0.4rem', fontSize: '0.9rem' }}>{meta.emoji}</span>
                   <span className="prayer-card-title">{meta.label}</span>

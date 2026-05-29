@@ -44,7 +44,7 @@ const StatisticsScreen = () => {
 
   return (
     <div className="screen-scroll">
-      <div className="screen-container" style={{ paddingBottom: '90px', overflowY: 'auto' }}>
+      <div className="screen-container">
 
         {/* Header */}
         <div style={{ marginBottom: '1.5rem' }}>
