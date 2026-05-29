@@ -32,12 +32,9 @@ const AuthScreen = () => {
     if (activeTab === 'login') {
       const res = await login(email, password);
       if (res.success) {
-        setSuccessMsg('Berhasil masuk! Memuat data...');
-        setTimeout(() => {
-          // Jika sudah pernah onboarding → langsung ke home
-          // Jika belum → jalani onboarding dulu
-          navigate(hasOnboarded ? 'home' : 'onboarding');
-        }, 800);
+        // Gunakan res.hasOnboarded dari server — BUKAN hasOnboarded dari closure
+        // karena React state masih stale (belum re-render) saat ini
+        navigate(res.hasOnboarded ? 'home' : 'onboarding');
       } else {
         setErrorMsg(res.error || 'Gagal masuk. Periksa kembali email & password.');
       }

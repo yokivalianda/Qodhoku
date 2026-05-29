@@ -75,8 +75,10 @@ export function QodhoProvider({ children }) {
   }, [state]);
 
   // Fetch the latest data from Hono server (Turso DB)
+  // Return data dari server agar caller bisa baca nilai terbaru
+  // (React state update async, tidak bisa langsung dibaca setelah setState)
   const fetchQodhoData = useCallback(async (authToken) => {
-    if (!authToken) return;
+    if (!authToken) return null;
     try {
       const res = await fetch(`${API_URL}/qodho`, {
         headers: {
@@ -91,13 +93,15 @@ export function QodhoProvider({ children }) {
           dailyTarget: data.dailyTarget,
           streak: data.streak,
           history: data.history,
-          // hasOnboarded dari server menang atas local — agar clear cookies tidak reset onboarding
+          // hasOnboarded dari server menang atas local
           hasOnboarded: data.hasOnboarded ?? prev.hasOnboarded,
         }));
+        return data; // ← return agar caller bisa pakai nilai fresh
       }
     } catch (err) {
       console.error("Failed to fetch qodho data from server:", err);
     }
+    return null;
   }, []);
 
   // Sync initial online data on mount if logged in
@@ -216,11 +220,11 @@ export function QodhoProvider({ children }) {
       setToken(data.token);
       setUser(data.user);
 
-      // Langsung fetch data dari server — JANGAN sync local ke server
-      // karena setelah logout, state sudah direset ke default (nilai 25)
-      // dan akan menimpa data asli user di database.
-      await fetchQodhoData(data.token);
-      return { success: true };
+      // Fetch data dari server dan return hasilnya
+      // PENTING: return serverData.hasOnboarded bukan dari React state
+      // karena setState() async — nilai di closure masih stale saat setTimeout fire
+      const serverData = await fetchQodhoData(data.token);
+      return { success: true, hasOnboarded: serverData?.hasOnboarded ?? false };
     } catch (err) {
       return { success: false, error: err.message };
     } finally {
