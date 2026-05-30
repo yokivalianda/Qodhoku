@@ -29,7 +29,10 @@ const getSyncQueue = () => {
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 };
-const saveSyncQueue = (q) => localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q));
+const saveSyncQueue = (q) => {
+  localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q));
+  window.dispatchEvent(new Event('qodhoku_sync_updated'));
+};
 const generateLocalId = () => 'local_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
 // --------------------------
 
@@ -73,6 +76,13 @@ export function QodhoProvider({ children }) {
     return saved ? JSON.parse(saved) : null;
   });
   const [syncing, setSyncing] = useState(false);
+  const [pendingSyncCount, setPendingSyncCount] = useState(() => getSyncQueue().length);
+
+  useEffect(() => {
+    const handleSyncUpdate = () => setPendingSyncCount(getSyncQueue().length);
+    window.addEventListener('qodhoku_sync_updated', handleSyncUpdate);
+    return () => window.removeEventListener('qodhoku_sync_updated', handleSyncUpdate);
+  }, []);
 
   // Persist state to localStorage every time it changes (for offline mode)
   useEffect(() => {
@@ -591,6 +601,7 @@ export function QodhoProvider({ children }) {
     token,
     user: user || state.user,
     syncing,
+    pendingSyncCount,
     // Actions
     addQodho,
     undoQodho,
@@ -599,6 +610,10 @@ export function QodhoProvider({ children }) {
     setOnboarded,
     resetData,
     updateUserName,
+    forceSync: () => {
+      const activeToken = localStorage.getItem('qodhoku_token');
+      if (activeToken) processSyncQueue(activeToken);
+    },
     // Auth actions
     register,
     login,

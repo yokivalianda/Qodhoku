@@ -81,7 +81,7 @@ const ThemeToggle = () => {
 
 const ProfileScreen = () => {
   const { navigate } = useNavigation();
-  const { user, totalCompleted, totalTarget, streak, history, token, logout } = useQodho();
+  const { user, totalCompleted, totalTarget, streak, history, token, logout, pendingSyncCount, forceSync, prayers } = useQodho();
 
   const [notifSettings, setNotifSettings] = React.useState({ enabled: false, time: '20:00' });
 
@@ -159,10 +159,53 @@ const ProfileScreen = () => {
               🔥 {streak.current} Streak
             </span>
             {token && (
-              <span className="pill" style={{ background: 'rgba(16,185,129,0.12)', color: '#34d399', borderColor: 'rgba(16,185,129,0.25)' }}>
-                ☁️ Cloud Aktif
+              <span 
+                className="pill" 
+                onClick={() => pendingSyncCount > 0 ? forceSync() : null}
+                style={{ 
+                  background: pendingSyncCount > 0 ? 'rgba(251,191,36,0.12)' : 'rgba(16,185,129,0.12)', 
+                  color: pendingSyncCount > 0 ? '#fbbf24' : '#34d399', 
+                  borderColor: pendingSyncCount > 0 ? 'rgba(251,191,36,0.25)' : 'rgba(16,185,129,0.25)',
+                  cursor: pendingSyncCount > 0 ? 'pointer' : 'default',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {pendingSyncCount > 0 ? `⏳ ${pendingSyncCount} Tertunda` : '☁️ Cloud Tersinkron'}
               </span>
             )}
+          </div>
+        </div>
+
+        {/* Gamification / Achievements */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Pencapaian Saya
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+            {[
+              { id: 'first', title: 'Langkah Awal', desc: 'Melunasi 10 qodho', unlocked: totalCompleted >= 10, icon: '🌟', color: '#fbbf24' },
+              { id: 'streak', title: 'Pejuang Konsisten', desc: 'Streak 7 hari beruntun', unlocked: streak.best >= 7, icon: '🔥', color: '#f43f5e' },
+              { id: 'half', title: 'Separuh Jalan', desc: '50% hutang terbayar', unlocked: totalTarget > 0 && totalCompleted >= (totalTarget / 2), icon: '🌗', color: '#60a5fa' },
+              { id: 'subuh', title: 'Penakluk Subuh', desc: 'Hutang Subuh Lunas', unlocked: prayers?.subuh?.total > 0 && prayers?.subuh?.completed >= prayers?.subuh?.total, icon: '🌅', color: '#34d399' },
+            ].map(badge => (
+              <div key={badge.id} style={{
+                background: badge.unlocked ? `${badge.color}15` : 'var(--bg-surface)',
+                border: `1px solid ${badge.unlocked ? `${badge.color}40` : 'var(--border-color)'}`,
+                borderRadius: 'var(--radius-md)', padding: '0.75rem', display: 'flex', gap: '0.75rem',
+                opacity: badge.unlocked ? 1 : 0.6, filter: badge.unlocked ? 'none' : 'grayscale(100%)',
+                transition: 'all 0.3s ease', alignItems: 'center'
+              }}>
+                <div style={{ fontSize: '1.5rem', filter: badge.unlocked ? `drop-shadow(0 0 8px ${badge.color}66)` : 'none' }}>
+                  {badge.icon}
+                </div>
+                <div>
+                  <p style={{ fontSize: '0.75rem', fontWeight: 700, color: badge.unlocked ? badge.color : 'var(--text-secondary)', marginBottom: '0.15rem' }}>
+                    {badge.title}
+                  </p>
+                  <p style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>{badge.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

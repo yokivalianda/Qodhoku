@@ -21,6 +21,24 @@ const StatisticsScreen = () => {
   });
 
   const maxCount = Math.max(...chartData.map(d => d.count), 1);
+
+  /* Heatmap data (60 days) */
+  const heatmapData = Array.from({ length: 60 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (59 - i));
+    const dateStr = d.toISOString().slice(0, 10);
+    const count = history.filter(h => h.date === dateStr).length;
+    return { date: dateStr, count };
+  });
+
+  const getColorForCount = (count) => {
+    if (count === 0) return 'var(--bg-elevated)';
+    if (count <= 2) return '#a7f3d0'; 
+    if (count <= 4) return '#34d399'; 
+    if (count <= 6) return '#059669'; 
+    return '#064e3b'; 
+  };
+
   const compliance = totalTarget > 0 ? Math.round((totalCompleted / totalTarget) * 100) : 0;
   const remaining = Math.max(0, totalTarget - totalCompleted);
 
@@ -97,48 +115,86 @@ const StatisticsScreen = () => {
           </div>
         </div>
 
-        {/* Chart */}
-        <div className="card mb-lg" style={{ padding: '1.25rem 1rem 1rem', background: 'var(--bg-surface)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Qodho per Hari</p>
-            <IconTrendUp size={16} color="var(--primary-color)" />
+        {/* Visualizers */}
+        {tab === 'mingguan' ? (
+          <div className="card mb-lg" style={{ padding: '1.25rem 1rem 1rem', background: 'var(--bg-surface)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Qodho per Hari</p>
+              <IconTrendUp size={16} color="var(--primary-color)" />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', height: '120px', gap: '6px', paddingBottom: '8px', borderBottom: '1px solid var(--border-color)', marginBottom: '8px' }}>
+              {chartData.map((d, idx) => {
+                const heightPct = Math.max((d.count / maxCount) * 100, d.count > 0 ? 6 : 2);
+                return (
+                  <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    {d.count > 0 && (
+                      <p style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--primary-400)' }}>{d.count}</p>
+                    )}
+                    <div style={{
+                      width: '100%',
+                      height: `${heightPct}%`,
+                      borderRadius: '4px 4px 0 0',
+                      background: d.isToday
+                        ? 'linear-gradient(180deg, #34d399, #10b981)'
+                        : d.count > 0
+                          ? 'linear-gradient(180deg, #059669, #047857)'
+                          : 'var(--bg-elevated)',
+                      opacity: d.isToday ? 1 : d.count > 0 ? 0.75 : 0.4,
+                      boxShadow: d.isToday ? '0 0 12px rgba(16,185,129,0.4)' : 'none',
+                      transition: 'height 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
+                    }} />
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              {chartData.map((d, idx) => (
+                <span key={idx} style={{
+                  flex: 1, textAlign: 'center',
+                  fontSize: '0.6rem',
+                  color: d.isToday ? 'var(--primary-color)' : 'var(--text-muted)',
+                  fontWeight: d.isToday ? 700 : 400,
+                }}>{d.day}</span>
+              ))}
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', height: '120px', gap: '6px', paddingBottom: '8px', borderBottom: '1px solid var(--border-color)', marginBottom: '8px' }}>
-            {chartData.map((d, idx) => {
-              const heightPct = Math.max((d.count / maxCount) * 100, d.count > 0 ? 6 : 2);
-              return (
-                <div key={idx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                  {d.count > 0 && (
-                    <p style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--primary-400)' }}>{d.count}</p>
-                  )}
-                  <div style={{
-                    width: '100%',
-                    height: `${heightPct}%`,
-                    borderRadius: '4px 4px 0 0',
-                    background: d.isToday
-                      ? 'linear-gradient(180deg, #34d399, #10b981)'
-                      : d.count > 0
-                        ? 'linear-gradient(180deg, #059669, #047857)'
-                        : 'var(--bg-elevated)',
-                    opacity: d.isToday ? 1 : d.count > 0 ? 0.75 : 0.4,
-                    boxShadow: d.isToday ? '0 0 12px rgba(16,185,129,0.4)' : 'none',
-                    transition: 'height 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
-                  }} />
-                </div>
-              );
-            })}
+        ) : (
+          <div className="card mb-lg" style={{ padding: '1.25rem 1rem 1rem', background: 'var(--bg-surface)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Aktivitas (60 Hari)</p>
+              <IconTrendUp size={16} color="var(--primary-color)" />
+            </div>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(12, 1fr)', 
+              gap: '5px', 
+              marginBottom: '1rem' 
+            }}>
+              {heatmapData.map((d, idx) => (
+                <div key={idx} 
+                  title={`${d.count} sholat pada ${d.date}`}
+                  style={{
+                    aspectRatio: '1/1',
+                    borderRadius: '2px',
+                    background: getColorForCount(d.count),
+                    opacity: d.date === new Date().toISOString().slice(0,10) ? 1 : 0.85,
+                    border: d.date === new Date().toISOString().slice(0,10) ? '2px solid var(--primary-color)' : 'none',
+                    transition: 'background 0.3s ease'
+                  }} 
+                />
+              ))}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.4rem', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+              <span>Sedikit</span>
+              <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: 'var(--bg-elevated)' }} />
+              <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#a7f3d0' }} />
+              <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#34d399' }} />
+              <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#059669' }} />
+              <div style={{ width: '10px', height: '10px', borderRadius: '2px', background: '#064e3b' }} />
+              <span>Banyak</span>
+            </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            {chartData.map((d, idx) => (
-              <span key={idx} style={{
-                flex: 1, textAlign: 'center',
-                fontSize: '0.6rem',
-                color: d.isToday ? 'var(--primary-color)' : 'var(--text-muted)',
-                fontWeight: d.isToday ? 700 : 400,
-              }}>{d.day}</span>
-            ))}
-          </div>
-        </div>
+        )}
 
         {/* Payoff Simulator Card */}
         <div className="card-glow" style={{ padding: '1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
