@@ -81,9 +81,22 @@ const ThemeToggle = () => {
 
 const ProfileScreen = () => {
   const { navigate } = useNavigation();
-  const { user, totalCompleted, totalTarget, streak, history, token, logout, pendingSyncCount, forceSync, prayers } = useQodho();
+  const { user, totalCompleted, totalTarget, streak, history, token, logout, pendingSyncCount, forceSync, prayers, syncQueue } = useQodho();
 
   const [notifSettings, setNotifSettings] = React.useState({ enabled: false, time: '20:00' });
+  const [showSyncModal, setShowSyncModal] = React.useState(false);
+
+  // Helper pemetaan bahasa untuk antrean
+  const getSyncLabel = (action) => {
+    switch (action.type) {
+      case 'ADD': return `Catat Qodho ${action.payload.prayer} (${action.payload.count}x)`;
+      case 'DELETE': return `Batalkan Riwayat Qodho`;
+      case 'PUT_TARGET': return `Ubah Target Harian ke ${action.payload.dailyTarget}`;
+      case 'PUT_PRAYER_TOTALS': return `Edit Jumlah Hutang Keseluruhan`;
+      case 'PUT_ONBOARDING': return `Update Status Onboarding`;
+      default: return `Sinkronisasi Sistem`;
+    }
+  };
 
   React.useEffect(() => {
     setNotifSettings(getNotificationSettings());
@@ -161,7 +174,7 @@ const ProfileScreen = () => {
             {token && (
               <span 
                 className="pill" 
-                onClick={() => pendingSyncCount > 0 ? forceSync() : null}
+                onClick={() => pendingSyncCount > 0 ? setShowSyncModal(true) : null}
                 style={{ 
                   background: pendingSyncCount > 0 ? 'rgba(251,191,36,0.12)' : 'rgba(16,185,129,0.12)', 
                   color: pendingSyncCount > 0 ? '#fbbf24' : '#34d399', 
@@ -326,6 +339,60 @@ const ProfileScreen = () => {
             );
           })}
         </div>
+
+        {/* Sync Modal Overlay */}
+        {showSyncModal && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.5)', zIndex: 100,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '1.5rem', backdropFilter: 'blur(4px)'
+          }} onClick={() => setShowSyncModal(false)}>
+            <div style={{
+              background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)',
+              padding: '1.5rem', width: '100%', maxWidth: '350px',
+              border: '1px solid var(--border-color)', boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+            }} onClick={e => e.stopPropagation()}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '1rem', color: 'var(--text-primary)' }}>
+                Rincian Tertunda
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem', lineHeight: 1.5 }}>
+                Aktivitas berikut tersimpan secara offline dan menunggu jaringan untuk dikirim ke cloud:
+              </p>
+              
+              <div style={{ 
+                background: 'var(--bg-elevated)', borderRadius: 'var(--radius-md)', 
+                padding: '0.75rem', marginBottom: '1.25rem', maxHeight: '150px', overflowY: 'auto',
+                display: 'flex', flexDirection: 'column', gap: '0.5rem'
+              }}>
+                {syncQueue.map((item, idx) => (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-primary)' }}>
+                    <span style={{ color: 'var(--primary-color)' }}>•</span>
+                    {getSyncLabel(item)}
+                  </div>
+                ))}
+                {syncQueue.length === 0 && (
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>Antrean kosong.</p>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button 
+                  onClick={() => setShowSyncModal(false)}
+                  style={{ flex: 1, padding: '0.75rem', background: 'var(--bg-elevated)', border: 'none', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontWeight: 700 }}
+                >
+                  Tutup
+                </button>
+                <button 
+                  onClick={() => { forceSync(); setShowSyncModal(false); }}
+                  style={{ flex: 1, padding: '0.75rem', background: 'var(--primary-color)', border: 'none', borderRadius: 'var(--radius-md)', color: 'white', fontWeight: 700 }}
+                >
+                  Sinkronkan
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
       <BottomNav currentScreen="profile" />

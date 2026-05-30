@@ -95,10 +95,10 @@ export function QodhoProvider({ children }) {
     return saved ? JSON.parse(saved) : null;
   });
   const [syncing, setSyncing] = useState(false);
-  const [pendingSyncCount, setPendingSyncCount] = useState(() => getSyncQueue().length);
+  const [syncQueue, setSyncQueue] = useState(() => getSyncQueue());
 
   useEffect(() => {
-    const handleSyncUpdate = () => setPendingSyncCount(getSyncQueue().length);
+    const handleSyncUpdate = () => setSyncQueue(getSyncQueue());
     window.addEventListener('qodhoku_sync_updated', handleSyncUpdate);
     return () => window.removeEventListener('qodhoku_sync_updated', handleSyncUpdate);
   }, []);
@@ -620,7 +620,8 @@ export function QodhoProvider({ children }) {
     token,
     user: user || state.user,
     syncing,
-    pendingSyncCount,
+    syncQueue,
+    pendingSyncCount: syncQueue.length,
     // Actions
     addQodho,
     undoQodho,
