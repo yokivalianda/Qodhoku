@@ -7,26 +7,31 @@ const API_URL = import.meta.env.VITE_API_URL ||
   (import.meta.env.DEV ? 'http://localhost:3001/api' : '/api');
 
 const defaultState = {
-  user: {
-    name: '',
-    joinDate: new Date().toISOString().slice(0, 10),
-  },
   prayers: {
-    subuh:   { completed: 0,  total: 25 },
-    dzuhur:  { completed: 0,  total: 25 },
-    ashar:   { completed: 0,  total: 25 },
-    maghrib: { completed: 0,  total: 25 },
-    isya:    { completed: 0,  total: 20 },
+    subuh: { total: 0, completed: 0 },
+    dzuhur: { total: 0, completed: 0 },
+    ashar: { total: 0, completed: 0 },
+    maghrib: { total: 0, completed: 0 },
+    isya: { total: 0, completed: 0 },
   },
   dailyTarget: 3,
-  streak: {
-    current: 0,
-    best: 0,
-    lastDate: null,
-  },
+  streak: { current: 0, best: 0, lastDate: null },
   history: [],
+  user: { name: 'Sobat QodhoKu', joinDate: new Date().toISOString() },
   hasOnboarded: false,
 };
+
+// --- Sync Queue Helpers ---
+const SYNC_QUEUE_KEY = 'qodhoku_sync_queue';
+const getSyncQueue = () => {
+  try {
+    const raw = localStorage.getItem(SYNC_QUEUE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+};
+const saveSyncQueue = (q) => localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q));
+const generateLocalId = () => 'local_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+// --------------------------
 
 function loadState() {
   try {
@@ -104,12 +109,65 @@ export function QodhoProvider({ children }) {
     return null;
   }, []);
 
-  // Sync initial online data on mount if logged in
+  // Process any pending offline sync operations
+  const processSyncQueue = useCallback(async (authToken) => {
+    if (!authToken) return;
+    const queue = getSyncQueue();
+    if (queue.length === 0) return;
+
+    let successCount = 0;
+    const remainingQueue = [];
+
+    for (const action of queue) {
+      try {
+        if (action.type === 'ADD') {
+          const res = await fetch(`${API_URL}/qodho`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+            body: JSON.stringify(action.payload)
+          });
+          if (!res.ok) throw new Error('API Sync Failed');
+        } else if (action.type === 'DELETE') {
+          const res = await fetch(`${API_URL}/qodho/${action.payload.id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (!res.ok) throw new Error('API Sync Failed');
+        }
+        successCount++;
+      } catch (err) {
+        remainingQueue.push(action);
+        const idx = queue.indexOf(action);
+        remainingQueue.push(...queue.slice(idx + 1));
+        break; 
+      }
+    }
+
+    if (remainingQueue.length !== queue.length) {
+      saveSyncQueue(remainingQueue);
+      if (successCount > 0) {
+        fetchQodhoData(authToken);
+      }
+    }
+  }, [fetchQodhoData]);
+
+  // Sync initial online data and process offline queue on mount
   useEffect(() => {
     if (token) {
       fetchQodhoData(token);
+      processSyncQueue(token);
     }
-  }, [token, fetchQodhoData]);
+  }, [token, fetchQodhoData, processSyncQueue]);
+
+  // Attach online listener to auto-sync when network recovers
+  useEffect(() => {
+    const handleOnline = () => {
+      const activeToken = localStorage.getItem('qodhoku_token');
+      if (activeToken) processSyncQueue(activeToken);
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [processSyncQueue]);
 
   // Upload/migrate existing local state data to Turso database upon first login/register
   const syncLocalDataToServer = useCallback(async (authToken, localState) => {
@@ -243,6 +301,7 @@ export function QodhoProvider({ children }) {
   }, []);
 
   const addQodho = useCallback(async (prayerKey, count = 1, customDate = null) => {
+    const localId = generateLocalId();
     // 1. Instant update UI locally first
     setState(prev => {
       const prayer = prev.prayers[prayerKey];
@@ -253,7 +312,7 @@ export function QodhoProvider({ children }) {
 
       const newHistory = [
         ...prev.history,
-        { prayer: prayerKey, count, date: targetDate, timestamp: Date.now() },
+        { id: localId, prayer: prayerKey, count, date: targetDate, timestamp: Date.now() },
       ];
 
       // Streak logic (Optimistic update)
@@ -300,12 +359,17 @@ export function QodhoProvider({ children }) {
           },
           body: JSON.stringify({ prayer: prayerKey, count, date: syncDate })
         });
-        if (res.ok) {
-          // Re-fetch calculations to ensure streaks are computed exactly as by the backend
-          fetchQodhoData(activeToken);
-        }
+        if (!res.ok) throw new Error('API addQodho failed');
+        // Re-fetch calculations to ensure streaks are computed exactly as by the backend
+        fetchQodhoData(activeToken);
       } catch (err) {
-        console.error("Failed to sync qodho log addition:", err);
+        console.warn("Offline! Adding qodho entry to sync queue:", err);
+        const queue = getSyncQueue();
+        queue.push({
+          type: 'ADD', localId,
+          payload: { prayer: prayerKey, count, date: syncDate, timestamp: Date.now() }
+        });
+        saveSyncQueue(queue);
       }
     }
   }, [fetchQodhoData]);
@@ -336,28 +400,40 @@ export function QodhoProvider({ children }) {
     // 2. Sync to server
     const activeToken = localStorage.getItem('qodhoku_token');
     if (activeToken) {
+      // Check if it's a pending offline entry
+      if (entry.id && String(entry.id).startsWith('local_')) {
+        let queue = getSyncQueue();
+        queue = queue.filter(q => q.localId !== entry.id);
+        saveSyncQueue(queue);
+        return; // Fully aborted the un-synced offline entry
+      }
+
       try {
+        let res;
         if (entry.id) {
-          // Clean DELETE by ID — no race conditions
-          await fetch(`${API_URL}/qodho/${entry.id}`, {
+          res = await fetch(`${API_URL}/qodho/${entry.id}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${activeToken}` }
           });
         } else {
-          // Local entry not yet synced — just post negative count
-          await fetch(`${API_URL}/qodho`, {
+          res = await fetch(`${API_URL}/qodho`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${activeToken}`
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${activeToken}` },
             body: JSON.stringify({ prayer: entry.prayer, count: -entry.count, date: entry.date })
           });
         }
+        if (!res.ok) throw new Error('API undoQodho failed');
         // Re-fetch from server to recalculate totals & streak
         await fetchQodhoData(activeToken);
       } catch (err) {
-        console.error("Failed to undo qodho entry:", err);
+        console.warn("Offline! Adding undo entry to sync queue:", err);
+        const queue = getSyncQueue();
+        if (entry.id) {
+          queue.push({ type: 'DELETE', payload: { id: entry.id } });
+        } else {
+          queue.push({ type: 'ADD', payload: { prayer: entry.prayer, count: -entry.count, date: entry.date } });
+        }
+        saveSyncQueue(queue);
       }
     }
   }, [fetchQodhoData]);
