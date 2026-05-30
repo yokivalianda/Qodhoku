@@ -17,6 +17,10 @@ const QuickAddScreen = () => {
   const [selected, setSelected] = useState({});
   const [saved, setSaved] = useState(false);
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const [targetDate, setTargetDate] = useState(todayStr);
+
   const toggle = key => {
     setSelected(prev => ({
       ...prev,
@@ -35,7 +39,7 @@ const QuickAddScreen = () => {
   const totalSelected = Object.values(selected).reduce((s, v) => s + v, 0);
 
   const handleSave = () => {
-    Object.entries(selected).forEach(([key, count]) => addQodho(key, count));
+    Object.entries(selected).forEach(([key, count]) => addQodho(key, count, targetDate));
     setSaved(true);
     setTimeout(() => navigate('home'), 900);
   };
@@ -51,9 +55,53 @@ const QuickAddScreen = () => {
         <div style={{ marginLeft: '0.75rem' }}>
           <h1 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>Catat Qodho</h1>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            Lacak progres bayar hutang sholat
           </p>
         </div>
+      </div>
+
+      {/* Date Selector */}
+      <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '0.75rem' }}>
+        Tanggal Pelaksanaan
+      </p>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', overflowX: 'auto', paddingBottom: '0.2rem' }}>
+        <button
+          onClick={() => setTargetDate(todayStr)}
+          style={{
+            padding: '0.6rem 1rem', borderRadius: '99px', fontSize: '0.8rem', fontWeight: 600,
+            background: targetDate === todayStr ? 'var(--primary-color)' : 'var(--bg-surface)',
+            color: targetDate === todayStr ? 'white' : 'var(--text-primary)',
+            border: `1px solid ${targetDate === todayStr ? 'var(--primary-color)' : 'var(--border-color)'}`,
+            whiteSpace: 'nowrap', cursor: 'pointer', transition: 'all 0.2s ease',
+          }}
+        >
+          Hari Ini
+        </button>
+        <button
+          onClick={() => setTargetDate(yesterdayStr)}
+          style={{
+            padding: '0.6rem 1rem', borderRadius: '99px', fontSize: '0.8rem', fontWeight: 600,
+            background: targetDate === yesterdayStr ? 'var(--primary-color)' : 'var(--bg-surface)',
+            color: targetDate === yesterdayStr ? 'white' : 'var(--text-primary)',
+            border: `1px solid ${targetDate === yesterdayStr ? 'var(--primary-color)' : 'var(--border-color)'}`,
+            whiteSpace: 'nowrap', cursor: 'pointer', transition: 'all 0.2s ease',
+          }}
+        >
+          Kemarin
+        </button>
+        <input
+          type="date"
+          value={targetDate}
+          onChange={(e) => setTargetDate(e.target.value || todayStr)}
+          max={todayStr}
+          style={{
+            padding: '0.5rem 1rem', borderRadius: '99px', fontSize: '0.8rem', fontWeight: 600,
+            background: (targetDate !== todayStr && targetDate !== yesterdayStr) ? 'var(--primary-color)' : 'var(--bg-surface)',
+            color: (targetDate !== todayStr && targetDate !== yesterdayStr) ? 'white' : 'var(--text-primary)',
+            border: `1px solid ${(targetDate !== todayStr && targetDate !== yesterdayStr) ? 'var(--primary-color)' : 'var(--border-color)'}`,
+            cursor: 'pointer', transition: 'all 0.2s ease', fontFamily: 'inherit',
+          }}
+        />
       </div>
 
       {/* Prayer Selector */}

@@ -12,6 +12,7 @@ import CalendarScreen from './screens/CalendarScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import AuthScreen from './screens/AuthScreen';
 import EditTotalsScreen from './screens/EditTotalsScreen';
+import { getNotificationSettings, sendReminderNotification } from './utils/notifications';
 import './App.css';
 
 function AppRouter() {
@@ -23,9 +24,32 @@ function AppRouter() {
     if (hasOnboarded && (currentScreen === 'onboarding' || currentScreen === 'auth')) {
       navigate('home');
     }
-    // Belum login dan di halaman awal → tampilkan auth
-    // (NavigationProvider sudah default ke 'auth', tidak perlu redirect)
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const checkNotification = () => {
+      const { enabled, time } = getNotificationSettings();
+      if (!enabled) return;
+
+      const now = new Date();
+      const currentHours = String(now.getHours()).padStart(2, '0');
+      const currentMinutes = String(now.getMinutes()).padStart(2, '0');
+      const currentTime = `${currentHours}:${currentMinutes}`;
+      
+      if (currentTime === time) {
+        const lastNotified = localStorage.getItem('qodhoku_last_notified');
+        const todayStr = now.toISOString().slice(0, 10);
+        if (lastNotified !== todayStr) {
+          sendReminderNotification();
+          localStorage.setItem('qodhoku_last_notified', todayStr);
+        }
+      }
+    };
+
+    // Check every minute
+    const interval = setInterval(checkNotification, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const renderScreen = () => {
     switch (currentScreen) {

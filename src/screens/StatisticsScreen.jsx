@@ -5,7 +5,7 @@ import { IconTrendUp } from '../components/Icons';
 
 const StatisticsScreen = () => {
   const [tab, setTab] = useState('mingguan');
-  const { history, totalCompleted, totalTarget, streak, prayers } = useQodho();
+  const { history, totalCompleted, totalTarget, streak, prayers, dailyTarget } = useQodho();
 
   /* Chart data */
   const chartData = Array.from({ length: 7 }).map((_, i) => {
@@ -22,7 +22,29 @@ const StatisticsScreen = () => {
 
   const maxCount = Math.max(...chartData.map(d => d.count), 1);
   const compliance = totalTarget > 0 ? Math.round((totalCompleted / totalTarget) * 100) : 0;
-  const remaining = totalTarget - totalCompleted;
+  const remaining = Math.max(0, totalTarget - totalCompleted);
+
+  const daysLeft = Math.ceil(remaining / (dailyTarget || 3));
+  const payoffDate = new Date();
+  payoffDate.setDate(payoffDate.getDate() + daysLeft);
+  const payoffDateStr = payoffDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const exportToCSV = () => {
+    if (history.length === 0) return alert('Belum ada data untuk diekspor.');
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Waktu Sholat,Jumlah,Tanggal Pelaksanaan,Waktu Dicatat\n";
+    history.forEach(row => {
+      const ts = row.timestamp ? new Date(row.timestamp).toLocaleString('id-ID') : '';
+      csvContent += `${row.prayer},${row.count},${row.date},"${ts}"\n`;
+    });
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Riwayat_QodhoKu_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   /* Prayer breakdown sorted by progress */
   const prayerList = Object.entries(prayers).map(([key, val]) => ({
@@ -47,9 +69,22 @@ const StatisticsScreen = () => {
       <div className="screen-container">
 
         {/* Header */}
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)' }}>Statistik</h1>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Pantau progres amalmu</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <div>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)' }}>Statistik</h1>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Pantau progres amalmu</p>
+          </div>
+          <button 
+            onClick={exportToCSV}
+            style={{
+              background: 'var(--bg-surface)', border: '1px solid var(--border-color)',
+              color: 'var(--primary-color)', padding: '0.5rem 0.75rem',
+              borderRadius: 'var(--radius-md)', fontSize: '0.75rem', fontWeight: 700,
+              display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer'
+            }}
+          >
+            ⬇️ CSV
+          </button>
         </div>
 
         {/* Tabs */}
@@ -102,6 +137,29 @@ const StatisticsScreen = () => {
                 fontWeight: d.isToday ? 700 : 400,
               }}>{d.day}</span>
             ))}
+          </div>
+        </div>
+
+        {/* Payoff Simulator Card */}
+        <div className="card-glow" style={{ padding: '1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{
+            width: '48px', height: '48px', borderRadius: '50%', background: 'var(--primary-100)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', flexShrink: 0
+          }}>
+            🎯
+          </div>
+          <div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.1rem' }}>
+              Estimasi Lunas
+            </p>
+            {remaining > 0 ? (
+              <>
+                <p style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-color)' }}>{payoffDateStr}</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Dengan target {dailyTarget} sholat/hari</p>
+              </>
+            ) : (
+              <p style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--primary-color)' }}>Alhamdulillah, Lunas!</p>
+            )}
           </div>
         </div>
 

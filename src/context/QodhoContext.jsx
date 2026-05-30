@@ -242,22 +242,27 @@ export function QodhoProvider({ children }) {
     setState(prev => ({ ...defaultState, hasOnboarded: prev.hasOnboarded }));
   }, []);
 
-  const addQodho = useCallback(async (prayerKey, count = 1) => {
+  const addQodho = useCallback(async (prayerKey, count = 1, customDate = null) => {
     // 1. Instant update UI locally first
     setState(prev => {
       const prayer = prev.prayers[prayerKey];
       if (!prayer) return prev;
       const newCompleted = Math.min(prayer.completed + count, prayer.total);
-      const today = new Date().toISOString().slice(0, 10);
+      
+      const targetDate = customDate || new Date().toISOString().slice(0, 10);
 
       const newHistory = [
         ...prev.history,
-        { prayer: prayerKey, count, date: today, timestamp: Date.now() },
+        { prayer: prayerKey, count, date: targetDate, timestamp: Date.now() },
       ];
 
-      // Streak logic
+      // Streak logic (Optimistic update)
+      // Only advance streak optimistically if we are logging for today.
+      // (Backend will recalculate the true streak on next fetch anyway)
       let newStreak = { ...prev.streak };
-      if (prev.streak.lastDate !== today) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      
+      if (targetDate === todayStr && prev.streak.lastDate !== todayStr) {
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const yStr = yesterday.toISOString().slice(0, 10);
@@ -266,7 +271,7 @@ export function QodhoProvider({ children }) {
         } else {
           newStreak.current = 1;
         }
-        newStreak.lastDate = today;
+        newStreak.lastDate = todayStr;
       }
       newStreak.best = Math.max(newStreak.best, newStreak.current);
 
@@ -283,16 +288,17 @@ export function QodhoProvider({ children }) {
 
     // 2. Sync to Hono / Turso database in the background
     const activeToken = localStorage.getItem('qodhoku_token');
+    const syncDate = customDate || new Date().toISOString().slice(0, 10);
+    
     if (activeToken) {
       try {
-        const today = new Date().toISOString().slice(0, 10);
         const res = await fetch(`${API_URL}/qodho`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${activeToken}`
           },
-          body: JSON.stringify({ prayer: prayerKey, count, date: today })
+          body: JSON.stringify({ prayer: prayerKey, count, date: syncDate })
         });
         if (res.ok) {
           // Re-fetch calculations to ensure streaks are computed exactly as by the backend

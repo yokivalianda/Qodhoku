@@ -9,6 +9,7 @@ import {
 } from '../components/Icons';
 import { useNavigation } from '../context/NavigationContext';
 import InstallPWA from '../components/InstallPWA';
+import { requestNotificationPermission, getNotificationSettings, setNotificationSettings } from '../utils/notifications';
 
 const SETTING_ITEMS = [
   { icon: IconUser,    label: 'Account & Security',         color: 'var(--primary-color)' },
@@ -81,6 +82,35 @@ const ThemeToggle = () => {
 const ProfileScreen = () => {
   const { navigate } = useNavigation();
   const { user, totalCompleted, totalTarget, streak, history, token, logout } = useQodho();
+
+  const [notifSettings, setNotifSettings] = React.useState({ enabled: false, time: '20:00' });
+
+  React.useEffect(() => {
+    setNotifSettings(getNotificationSettings());
+  }, []);
+
+  const handleNotifToggle = async (e) => {
+    e.stopPropagation();
+    if (!notifSettings.enabled) {
+      const granted = await requestNotificationPermission();
+      if (granted) {
+        const newSettings = { enabled: true, time: notifSettings.time };
+        setNotificationSettings(true, newSettings.time);
+        setNotifSettings(newSettings);
+      }
+    } else {
+      const newSettings = { enabled: false, time: notifSettings.time };
+      setNotificationSettings(false, newSettings.time);
+      setNotifSettings(newSettings);
+    }
+  };
+
+  const handleTimeChange = (e) => {
+    const newTime = e.target.value;
+    const newSettings = { ...notifSettings, time: newTime };
+    setNotificationSettings(newSettings.enabled, newTime);
+    setNotifSettings(newSettings);
+  };
 
   const handleSettingClick = (label) => {
     if (label === 'Account & Security') {
@@ -216,7 +246,39 @@ const ProfileScreen = () => {
                     {item.label}
                   </span>
                 </div>
-                <IconChevronRight size={15} color="var(--text-muted)" />
+                {item.label === 'Notifikasi Waktu Sholat' ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }} onClick={e => e.stopPropagation()}>
+                    <input 
+                      type="time" 
+                      value={notifSettings.time} 
+                      onChange={handleTimeChange}
+                      disabled={!notifSettings.enabled}
+                      style={{
+                        background: 'var(--bg-elevated)', border: '1px solid var(--border-color)',
+                        color: notifSettings.enabled ? 'var(--text-primary)' : 'var(--text-muted)',
+                        padding: '0.2rem 0.5rem', borderRadius: '6px', fontFamily: 'inherit', fontSize: '0.75rem',
+                        opacity: notifSettings.enabled ? 1 : 0.5, cursor: 'pointer'
+                      }}
+                    />
+                    <div 
+                      onClick={handleNotifToggle}
+                      style={{
+                        width: '42px', height: '24px', borderRadius: '12px',
+                        background: notifSettings.enabled ? 'var(--primary-color)' : 'var(--bg-elevated)',
+                        border: `1px solid ${notifSettings.enabled ? 'var(--primary-color)' : 'var(--border-color)'}`,
+                        position: 'relative', cursor: 'pointer', transition: 'all 0.3s ease'
+                      }}
+                    >
+                      <div style={{
+                        width: '18px', height: '18px', borderRadius: '50%', background: 'white',
+                        position: 'absolute', top: '2px', left: notifSettings.enabled ? '20px' : '2px',
+                        transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)', boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                      }} />
+                    </div>
+                  </div>
+                ) : (
+                  <IconChevronRight size={15} color="var(--text-muted)" />
+                )}
               </div>
             );
           })}

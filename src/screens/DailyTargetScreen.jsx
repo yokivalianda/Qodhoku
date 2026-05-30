@@ -36,7 +36,7 @@ const TARGETS = [
 
 const DailyTargetScreen = () => {
   const { navigate } = useNavigation();
-  const { setDailyTarget: saveDailyTarget, setOnboarded, totalTarget } = useQodho();
+  const { setDailyTarget: saveDailyTarget, setOnboarded, totalTarget, totalCompleted } = useQodho();
   const [selectedTarget, setSelectedTarget] = useState(3);
 
   const handleSave = () => {
@@ -45,7 +45,22 @@ const DailyTargetScreen = () => {
     navigate('home');
   };
 
+  const remaining = Math.max(0, totalTarget - totalCompleted);
+
+  const getDynamicTargetDetails = (tVal) => {
+    const daysLeft = Math.ceil(remaining / tVal);
+    const pDate = new Date();
+    pDate.setDate(pDate.getDate() + daysLeft);
+    const dateStr = pDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    return {
+      daysLeft,
+      dateStr,
+      estimatedText: remaining > 0 ? `${daysLeft} hari lagi` : 'Sudah Lunas'
+    };
+  };
+
   const selected = TARGETS.find(t => t.value === selectedTarget);
+  const selectedDetails = selected ? getDynamicTargetDetails(selected.value) : null;
 
   return (
     <div className="screen-container" style={{ paddingTop: '2.5rem' }}>
@@ -108,7 +123,7 @@ const DailyTargetScreen = () => {
                       background: isSelected ? `${target.color}18` : 'var(--bg-elevated)',
                       padding: '2px 8px', borderRadius: '99px',
                     }}>
-                      {target.estimatedDays}
+                      {getDynamicTargetDetails(target.value).estimatedText}
                     </span>
                   </div>
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{target.desc}</p>
@@ -134,23 +149,32 @@ const DailyTargetScreen = () => {
       </div>
 
       {/* Preview banner */}
-      {selected && (
+      {selected && selectedDetails && (
         <div style={{
           background: 'var(--bg-surface-2)',
           border: `1px solid ${selected.color}44`,
           borderRadius: 'var(--radius-lg)',
-          padding: '1rem',
+          padding: '1.25rem 1rem',
           marginTop: '1.25rem',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          display: 'flex', flexDirection: 'column', gap: '0.75rem',
         }}>
-          <div>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Estimasi selesai dalam</p>
-            <p style={{ fontSize: '1rem', fontWeight: 700, color: selected.color }}>{selected.estimatedDays}</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+             <div>
+               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Estimasi Selesai</p>
+               <p style={{ fontSize: '1.1rem', fontWeight: 800, color: selected.color }}>{selectedDetails.estimatedText}</p>
+             </div>
+             <div style={{ textAlign: 'right' }}>
+               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Qodho / hari</p>
+               <p style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>{selectedTarget}x Sholat</p>
+             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>Qodho per hari</p>
-            <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{selectedTarget}x Sholat</p>
-          </div>
+          {remaining > 0 && (
+            <div style={{ background: 'var(--bg-elevated)', padding: '0.75rem', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                🎉 Insya Allah lunas pada <span style={{ fontWeight: 800, color: selected.color }}>{selectedDetails.dateStr}</span>
+              </p>
+            </div>
+          )}
         </div>
       )}
 
