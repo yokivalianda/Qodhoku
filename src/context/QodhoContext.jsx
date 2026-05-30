@@ -39,7 +39,26 @@ const generateLocalId = () => 'local_' + Math.random().toString(36).substr(2, 9)
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Lakukan deep merge agar struktur state lama tidak merusak fitur baru
+      return {
+        ...defaultState,
+        ...parsed,
+        prayers: {
+          ...defaultState.prayers,
+          ...(parsed.prayers || {})
+        },
+        streak: {
+          ...defaultState.streak,
+          ...(parsed.streak || {})
+        },
+        user: {
+          ...defaultState.user,
+          ...(parsed.user || {})
+        }
+      };
+    }
   } catch {
     // corrupted data — fall back
   }
