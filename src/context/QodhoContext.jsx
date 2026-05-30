@@ -133,6 +133,26 @@ export function QodhoProvider({ children }) {
             headers: { 'Authorization': `Bearer ${authToken}` }
           });
           if (!res.ok) throw new Error('API Sync Failed');
+        } else if (action.type === 'PUT_TARGET') {
+          const res = await fetch(`${API_URL}/qodho/target`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+            body: JSON.stringify(action.payload)
+          });
+          if (!res.ok) throw new Error('API Sync Failed');
+        } else if (action.type === 'PUT_PRAYER_TOTALS') {
+          const res = await fetch(`${API_URL}/qodho/prayer-totals`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+            body: JSON.stringify(action.payload)
+          });
+          if (!res.ok) throw new Error('API Sync Failed');
+        } else if (action.type === 'PUT_ONBOARDING') {
+          const res = await fetch(`${API_URL}/qodho/onboarding`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (!res.ok) throw new Error('API Sync Failed');
         }
         successCount++;
       } catch (err) {
@@ -444,7 +464,7 @@ export function QodhoProvider({ children }) {
     const activeToken = localStorage.getItem('qodhoku_token');
     if (activeToken) {
       try {
-        await fetch(`${API_URL}/qodho/target`, {
+        const res = await fetch(`${API_URL}/qodho/target`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -452,8 +472,13 @@ export function QodhoProvider({ children }) {
           },
           body: JSON.stringify({ dailyTarget: target })
         });
+        if (!res.ok) throw new Error('API setDailyTarget failed');
       } catch (err) {
-        console.error("Failed to sync daily target to server:", err);
+        console.warn("Offline! Adding daily target update to sync queue:", err);
+        const queue = getSyncQueue();
+        const cleanQueue = queue.filter(q => q.type !== 'PUT_TARGET');
+        cleanQueue.push({ type: 'PUT_TARGET', payload: { dailyTarget: target } });
+        saveSyncQueue(cleanQueue);
       }
     }
   }, []);
@@ -476,7 +501,7 @@ export function QodhoProvider({ children }) {
     const activeToken = localStorage.getItem('qodhoku_token');
     if (activeToken) {
       try {
-        await fetch(`${API_URL}/qodho/prayer-totals`, {
+        const res = await fetch(`${API_URL}/qodho/prayer-totals`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -484,8 +509,13 @@ export function QodhoProvider({ children }) {
           },
           body: JSON.stringify({ prayers: totals })
         });
+        if (!res.ok) throw new Error('API setPrayerTotals failed');
       } catch (err) {
-        console.error("Failed to sync prayer totals to server:", err);
+        console.warn("Offline! Adding prayer totals update to sync queue:", err);
+        const queue = getSyncQueue();
+        const cleanQueue = queue.filter(q => q.type !== 'PUT_PRAYER_TOTALS');
+        cleanQueue.push({ type: 'PUT_PRAYER_TOTALS', payload: { prayers: totals } });
+        saveSyncQueue(cleanQueue);
       }
     }
   }, []);
@@ -499,7 +529,15 @@ export function QodhoProvider({ children }) {
       fetch(`${API_URL}/qodho/onboarding`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${activeToken}` },
-      }).catch(err => console.error('Failed to sync onboarding status:', err));
+      }).then(res => {
+        if (!res.ok) throw new Error('API setOnboarded failed');
+      }).catch(err => {
+        console.warn('Offline! Adding onboarding status to sync queue:', err);
+        const queue = getSyncQueue();
+        const cleanQueue = queue.filter(q => q.type !== 'PUT_ONBOARDING');
+        cleanQueue.push({ type: 'PUT_ONBOARDING' });
+        saveSyncQueue(cleanQueue);
+      });
     }
   }, []);
 
