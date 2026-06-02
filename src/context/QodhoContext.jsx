@@ -118,7 +118,8 @@ export function QodhoProvider({ children }) {
       const res = await fetch(`${API_URL}/qodho`, {
         headers: {
           'Authorization': `Bearer ${authToken}`
-        }
+        },
+        cache: 'no-store'
       });
       if (res.ok) {
         const data = await res.json();
