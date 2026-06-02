@@ -13,7 +13,7 @@ const PRAYERS = [
 
 const EditTotalsScreen = () => {
   const { navigate } = useNavigation();
-  const { prayers, setPrayerTotals, syncing } = useQodho();
+  const { prayers, setPrayerTotals, syncing, targetHistory, refetch } = useQodho();
 
   // Pre-fill with current totals
   const [values, setValues] = useState(() =>
@@ -48,6 +48,7 @@ const EditTotalsScreen = () => {
       PRAYERS.map(({ key }) => [key, Number(values[key])])
     );
     await setPrayerTotals(totals);
+    refetch(); // Refetch to get updated targetHistory
     setSaved(true);
     setTimeout(() => navigate('profile'), 1000);
   };
@@ -236,6 +237,59 @@ const EditTotalsScreen = () => {
         <p className="text-center" style={{ marginTop: '0.875rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
           Perubahan otomatis tersinkronisasi ke cloud database Anda
         </p>
+
+        {/* Target History Section */}
+        {targetHistory && targetHistory.length > 0 && (
+          <div style={{ marginTop: '2.5rem', marginBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+              Riwayat Perubahan Target
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+              {targetHistory.map((history) => {
+                const meta = PRAYERS.find(p => p.key === history.prayer) || { label: history.prayer, emoji: '🕌', color: 'var(--primary-color)' };
+                const dateLabel = new Date(history.timestamp).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+                const timeLabel = new Date(history.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                const isIncrease = history.newTotal > history.oldTotal;
+                
+                return (
+                  <div key={history.id} style={{
+                    display: 'flex', alignItems: 'center', gap: '0.75rem',
+                    background: 'var(--bg-surface)', padding: '0.75rem',
+                    borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)'
+                  }}>
+                    {/* Emoji */}
+                    <div style={{
+                      width: '32px', height: '32px', borderRadius: '8px',
+                      background: `${meta.color}18`, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '0.9rem',
+                    }}>
+                      {meta.emoji}
+                    </div>
+                    {/* Info */}
+                    <div style={{ flex: 1 }}>
+                      <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                        {meta.label}
+                      </p>
+                      <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '0.1rem 0 0 0' }}>
+                        {dateLabel} • {timeLabel}
+                      </p>
+                    </div>
+                    {/* Change Indicator */}
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0, textDecoration: 'line-through' }}>
+                        {history.oldTotal}
+                      </p>
+                      <p style={{ fontSize: '0.9rem', fontWeight: 800, color: isIncrease ? '#f87171' : '#34d399', margin: 0 }}>
+                        {history.newTotal}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `

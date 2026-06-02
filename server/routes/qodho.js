@@ -149,11 +149,29 @@ qodho.get('/', async (c) => {
     const uniqueDates = datesRes.rows.map(r => r.date);
     const streak = calculateStreak(uniqueDates);
 
+    // 8. Fetch target history
+    const targetHistoryRes = await db.execute({
+      sql: `SELECT id, prayer, old_total as oldTotal, new_total as newTotal, created_at 
+            FROM target_history 
+            WHERE user_id = ? 
+            ORDER BY created_at DESC 
+            LIMIT 20`,
+      args: [user.id],
+    });
+    const targetHistory = targetHistoryRes.rows.map(row => ({
+      id: Number(row.id),
+      prayer: row.prayer,
+      oldTotal: Number(row.oldTotal),
+      newTotal: Number(row.newTotal),
+      timestamp: Date.parse(row.created_at) || Date.now(),
+    }));
+
     return c.json({
       prayers,
       dailyTarget,
       streak,
       history,
+      targetHistory,
       hasOnboarded,
     });
 
@@ -291,10 +309,30 @@ qodho.put('/prayer-totals', async (c) => {
 
   try {
     await ensurePrayerTotals(user.id);
+    
+    // Get existing totals to check for changes
+    const existingTotalsRes = await db.execute({
+      sql: 'SELECT prayer, total FROM prayer_totals WHERE user_id = ?',
+      args: [user.id],
+    });
+    const existingTotals = {};
+    for (const row of existingTotalsRes.rows) {
+      existingTotals[row.prayer] = Number(row.total);
+    }
 
     for (const [prayer, total] of Object.entries(prayers)) {
       const totalNum = Number(total);
       if (isNaN(totalNum) || totalNum < 0) continue;
+      
+      const oldTotal = existingTotals[prayer] ?? 0;
+      
+      if (oldTotal !== totalNum) {
+        // Log the change in target_history
+        await db.execute({
+          sql: `INSERT INTO target_history (user_id, prayer, old_total, new_total) VALUES (?, ?, ?, ?)`,
+          args: [user.id, prayer, oldTotal, totalNum],
+        });
+      }
 
       await db.execute({
         sql: `INSERT OR REPLACE INTO prayer_totals (user_id, prayer, total) VALUES (?, ?, ?)`,

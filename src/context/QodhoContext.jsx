@@ -17,6 +17,7 @@ const defaultState = {
   dailyTarget: 3,
   streak: { current: 0, best: 0, lastDate: null },
   history: [],
+  targetHistory: [],
   user: { name: 'Sobat QodhoKu', joinDate: new Date().toISOString() },
   hasOnboarded: false,
 };
@@ -127,6 +128,7 @@ export function QodhoProvider({ children }) {
           dailyTarget: data.dailyTarget,
           streak: data.streak,
           history: data.history,
+          targetHistory: data.targetHistory || [],
           // hasOnboarded dari server menang atas local
           hasOnboarded: data.hasOnboarded ?? prev.hasOnboarded,
         }));
@@ -616,6 +618,7 @@ export function QodhoProvider({ children }) {
     totalTarget,
     progress,
     todayCount,
+    targetHistory: state.targetHistory,
     // Sync attributes
     token,
     user: user || state.user,

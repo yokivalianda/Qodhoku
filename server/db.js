@@ -50,6 +50,17 @@ export async function initSchema() {
        ON qodho_entries(user_id, date)`,
     `CREATE INDEX IF NOT EXISTS idx_totals_user
        ON prayer_totals(user_id)`,
+    `CREATE TABLE IF NOT EXISTS target_history (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      prayer     TEXT    NOT NULL
+                         CHECK(prayer IN ('subuh','dzuhur','ashar','maghrib','isya')),
+      old_total  INTEGER NOT NULL,
+      new_total  INTEGER NOT NULL,
+      created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_target_history_user
+       ON target_history(user_id)`,
   ];
 
   for (const sql of stmts) {
