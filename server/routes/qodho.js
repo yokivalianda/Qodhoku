@@ -407,5 +407,37 @@ qodho.delete('/:id', async (c) => {
   }
 });
 
+/* ── DELETE /api/qodho/target-history/:id ───────────────── */
+qodho.delete('/target-history/:id', async (c) => {
+  const user = c.get('user');
+  const historyId = Number(c.req.param('id'));
+
+  if (!historyId || isNaN(historyId)) {
+    return c.json({ error: 'Invalid target history ID' }, 400);
+  }
+
+  try {
+    const check = await db.execute({
+      sql: 'SELECT id FROM target_history WHERE id = ? AND user_id = ?',
+      args: [historyId, user.id],
+    });
+
+    if (check.rows.length === 0) {
+      return c.json({ error: 'Entry not found or access denied' }, 404);
+    }
+
+    await db.execute({
+      sql: 'DELETE FROM target_history WHERE id = ? AND user_id = ?',
+      args: [historyId, user.id],
+    });
+
+    return c.json({ success: true, deleted: historyId });
+
+  } catch (err) {
+    console.error('Delete target history error:', err);
+    return c.json({ error: 'Server error deleting target history' }, 500);
+  }
+});
+
 export default qodho;
 

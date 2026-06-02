@@ -13,7 +13,7 @@ const PRAYERS = [
 
 const EditTotalsScreen = () => {
   const { navigate } = useNavigation();
-  const { prayers, setPrayerTotals, syncing, targetHistory, refetch } = useQodho();
+  const { prayers, setPrayerTotals, syncing, targetHistory, refetch, deleteTargetHistory } = useQodho();
 
   // Pre-fill with current totals
   const [values, setValues] = useState(() =>
@@ -21,6 +21,7 @@ const EditTotalsScreen = () => {
   );
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState({});
+  const [deletingId, setDeletingId] = useState(null);
 
   const handleChange = (key, raw) => {
     setValues(prev => ({ ...prev, [key]: raw }));
@@ -51,6 +52,12 @@ const EditTotalsScreen = () => {
     refetch(); // Refetch to get updated targetHistory
     setSaved(true);
     setTimeout(() => navigate('profile'), 1000);
+  };
+
+  const handleDeleteHistory = async (id) => {
+    setDeletingId(id);
+    await deleteTargetHistory(id);
+    setDeletingId(null);
   };
 
   const totalNew = PRAYERS.reduce((s, p) => s + (Number(values[p.key]) || 0), 0);
@@ -256,12 +263,14 @@ const EditTotalsScreen = () => {
                 const dateLabel = new Date(history.timestamp).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
                 const timeLabel = new Date(history.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                 const isIncrease = history.newTotal > history.oldTotal;
+                const isDeleting = deletingId === history.id;
                 
                 return (
                   <div key={history.id} style={{
                     display: 'flex', alignItems: 'center', gap: '0.75rem',
                     background: 'var(--bg-surface)', padding: '0.75rem',
-                    borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)'
+                    borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)',
+                    opacity: isDeleting ? 0.5 : 1, transition: 'opacity 0.2s ease',
                   }}>
                     {/* Emoji */}
                     <div style={{
@@ -282,7 +291,7 @@ const EditTotalsScreen = () => {
                       </p>
                     </div>
                     {/* Change Indicator */}
-                    <div style={{ textAlign: 'right' }}>
+                    <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>
                       <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0, textDecoration: 'line-through' }}>
                         {history.oldTotal}
                       </p>
@@ -290,6 +299,26 @@ const EditTotalsScreen = () => {
                         {history.newTotal}
                       </p>
                     </div>
+                    {/* Delete button */}
+                    <button
+                      onClick={() => handleDeleteHistory(history.id)}
+                      disabled={isDeleting}
+                      title="Hapus riwayat ini"
+                      style={{
+                        width: '32px', height: '32px',
+                        borderRadius: '8px',
+                        background: 'rgba(248,113,113,0.1)',
+                        border: '1px solid rgba(248,113,113,0.2)',
+                        color: '#f87171',
+                        cursor: isDeleting ? 'not-allowed' : 'pointer',
+                        fontSize: '0.9rem',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {isDeleting ? '⏳' : '🗑️'}
+                    </button>
                   </div>
                 );
               })}

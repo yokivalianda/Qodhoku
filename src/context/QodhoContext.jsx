@@ -184,6 +184,12 @@ export function QodhoProvider({ children }) {
             headers: { 'Authorization': `Bearer ${authToken}` }
           });
           if (!res.ok) throw new Error('API Sync Failed');
+        } else if (action.type === 'DELETE_TARGET_HISTORY') {
+          const res = await fetch(`${API_URL}/qodho/target-history/${action.payload.id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (!res.ok) throw new Error('API Sync Failed');
         }
         successCount++;
       } catch (err) {
@@ -618,6 +624,38 @@ export function QodhoProvider({ children }) {
     }
   }, []);
 
+  const deleteTargetHistory = useCallback(async (historyId) => {
+    // Optimistic UI update
+    setState(prev => {
+      const newTargetHistory = prev.targetHistory.filter(h => h.id !== historyId);
+      return { ...prev, targetHistory: newTargetHistory };
+    });
+
+    const activeToken = localStorage.getItem('qodhoku_token');
+    if (activeToken) {
+      if (String(historyId).startsWith('local_')) {
+        let queue = getSyncQueue();
+        queue = queue.filter(q => q.type !== 'DELETE_TARGET_HISTORY' || q.payload?.id !== historyId);
+        saveSyncQueue(queue);
+        return; 
+      }
+
+      try {
+        const res = await fetch(`${API_URL}/qodho/target-history/${historyId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${activeToken}` }
+        });
+        if (!res.ok) throw new Error('API deleteTargetHistory failed');
+        // No need to fetch again, optimistically removed
+      } catch (err) {
+        console.warn("Offline! Adding target history deletion to sync queue:", err);
+        const queue = getSyncQueue();
+        queue.push({ type: 'DELETE_TARGET_HISTORY', payload: { id: historyId } });
+        saveSyncQueue(queue);
+      }
+    }
+  }, []);
+
   /* ── derived values ────────────────────────────────────── */
 
   const totalCompleted = getTotalCompleted(state.prayers);
@@ -648,6 +686,7 @@ export function QodhoProvider({ children }) {
     setOnboarded,
     resetData,
     updateUserName,
+    deleteTargetHistory,
     forceSync: () => {
       const activeToken = localStorage.getItem('qodhoku_token');
       if (activeToken) processSyncQueue(activeToken);
