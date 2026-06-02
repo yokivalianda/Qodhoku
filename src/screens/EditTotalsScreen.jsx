@@ -55,6 +55,8 @@ const EditTotalsScreen = () => {
   };
 
   const handleDeleteHistory = async (id) => {
+    if (!window.confirm("Apakah Anda yakin ingin menghapus riwayat perubahan target ini?")) return;
+    
     setDeletingId(id);
     await deleteTargetHistory(id);
     setDeletingId(null);
