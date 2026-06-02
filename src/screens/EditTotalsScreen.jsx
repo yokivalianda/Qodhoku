@@ -57,6 +57,12 @@ const EditTotalsScreen = () => {
   const totalCompleted = PRAYERS.reduce((s, p) => s + (prayers[p.key]?.completed ?? 0), 0);
   const totalRemaining = totalNew - totalCompleted;
 
+  const hasChanges = PRAYERS.some(p => {
+    const currentTotal = prayers[p.key]?.total ?? 0;
+    const inputValue = Number(values[p.key]);
+    return currentTotal !== inputValue;
+  });
+
   return (
     <div className="screen-scroll">
       <div className="screen-container">
@@ -213,7 +219,7 @@ const EditTotalsScreen = () => {
         <button
           className="btn-primary"
           onClick={handleSave}
-          disabled={syncing || saved}
+          disabled={syncing || saved || !hasChanges}
           style={{ fontSize: '0.95rem' }}
         >
           {saved ? (

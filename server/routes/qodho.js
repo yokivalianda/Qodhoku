@@ -138,7 +138,7 @@ qodho.get('/', async (c) => {
       prayer: row.prayer,
       count: Number(row.count),
       date: row.date,
-      timestamp: Date.parse(row.created_at) || Date.now(),
+      timestamp: Date.parse(row.created_at.replace(' ', 'T') + 'Z') || Date.now(),
     }));
 
     // 7. Calculate streak
@@ -163,7 +163,7 @@ qodho.get('/', async (c) => {
       prayer: row.prayer,
       oldTotal: Number(row.oldTotal),
       newTotal: Number(row.newTotal),
-      timestamp: Date.parse(row.created_at) || Date.now(),
+      timestamp: Date.parse(row.created_at.replace(' ', 'T') + 'Z') || Date.now(),
     }));
 
     return c.json({

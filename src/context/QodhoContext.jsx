@@ -518,15 +518,30 @@ export function QodhoProvider({ children }) {
     // totals = { subuh: 300, dzuhur: 300, ... }
     setState(prev => {
       const newPrayers = { ...prev.prayers };
+      const newTargetHistory = [...(prev.targetHistory || [])];
+
       Object.entries(totals).forEach(([key, total]) => {
         if (newPrayers[key]) {
+          const oldTotal = newPrayers[key].total;
+          const newTotalNum = Math.max(newPrayers[key].completed, Number(total));
+          
+          if (oldTotal !== newTotalNum) {
+            newTargetHistory.unshift({
+              id: 'local_' + Math.random().toString(36).substr(2, 9),
+              prayer: key,
+              oldTotal,
+              newTotal: newTotalNum,
+              timestamp: Date.now()
+            });
+          }
+
           newPrayers[key] = {
             ...newPrayers[key],
-            total: Math.max(newPrayers[key].completed, Number(total)),
+            total: newTotalNum,
           };
         }
       });
-      return { ...prev, prayers: newPrayers };
+      return { ...prev, prayers: newPrayers, targetHistory: newTargetHistory };
     });
 
     const activeToken = localStorage.getItem('qodhoku_token');
