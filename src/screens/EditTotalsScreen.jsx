@@ -255,71 +255,63 @@ const EditTotalsScreen = () => {
 
         {/* Target History Section */}
         {targetHistory && targetHistory.length > 0 && (
-          <div style={{ marginTop: '2.5rem', marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+          <div style={{ marginTop: '2rem', marginBottom: '1.5rem' }}>
+            <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>
               Riwayat Perubahan Target
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {targetHistory.map((history) => {
                 const meta = PRAYERS.find(p => p.key === history.prayer) || { label: history.prayer, emoji: '🕌', color: 'var(--primary-color)' };
                 const dateLabel = new Date(history.timestamp).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-                const timeLabel = new Date(history.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                 const isIncrease = history.newTotal > history.oldTotal;
                 const isDeleting = deletingId === history.id;
-                
+                const diff = history.newTotal - history.oldTotal;
+
                 return (
                   <div key={history.id} style={{
                     display: 'flex', alignItems: 'center', gap: '0.75rem',
-                    background: 'var(--bg-surface)', padding: '0.75rem',
-                    borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)',
+                    background: 'var(--bg-surface)', padding: '0.6rem 0.75rem',
+                    borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)',
                     opacity: isDeleting ? 0.5 : 1, transition: 'opacity 0.2s ease',
                   }}>
                     {/* Emoji */}
-                    <div style={{
-                      width: '32px', height: '32px', borderRadius: '8px',
-                      background: `${meta.color}18`, flexShrink: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '0.9rem',
-                    }}>
-                      {meta.emoji}
-                    </div>
+                    <span style={{ fontSize: '1rem', flexShrink: 0 }}>{meta.emoji}</span>
+
                     {/* Info */}
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                         {meta.label}
+                        <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '0.4rem', fontSize: '0.7rem' }}>
+                          {dateLabel}
+                        </span>
                       </p>
-                      <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '0.1rem 0 0 0' }}>
-                        {dateLabel} • {timeLabel}
+                      {/* Old → New */}
+                      <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '0.15rem 0 0 0', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <span style={{ textDecoration: 'line-through' }}>{history.oldTotal}</span>
+                        <span>→</span>
+                        <span style={{ fontWeight: 700, color: isIncrease ? '#f87171' : '#34d399' }}>{history.newTotal}</span>
+                        <span style={{ marginLeft: '0.2rem', color: isIncrease ? '#f87171' : '#34d399', fontWeight: 700 }}>
+                          ({isIncrease ? '+' : ''}{diff})
+                        </span>
                       </p>
                     </div>
-                    {/* Change Indicator */}
-                    <div style={{ textAlign: 'right', paddingRight: '0.5rem' }}>
-                      <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0, textDecoration: 'line-through' }}>
-                        {history.oldTotal}
-                      </p>
-                      <p style={{ fontSize: '0.9rem', fontWeight: 800, color: isIncrease ? '#f87171' : '#34d399', margin: 0 }}>
-                        {history.newTotal}
-                      </p>
-                    </div>
+
                     {/* Delete button */}
                     <button
                       onClick={() => handleDeleteHistory(history.id)}
                       disabled={isDeleting}
                       title="Hapus riwayat ini"
                       style={{
-                        width: '32px', height: '32px',
-                        borderRadius: '8px',
-                        background: 'rgba(248,113,113,0.1)',
-                        border: '1px solid rgba(248,113,113,0.2)',
-                        color: '#f87171',
-                        cursor: isDeleting ? 'not-allowed' : 'pointer',
-                        fontSize: '0.9rem',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0,
-                        transition: 'all 0.15s ease',
+                        width: '28px', height: '28px', borderRadius: '7px',
+                        background: 'transparent', border: 'none',
+                        color: 'var(--text-muted)', cursor: isDeleting ? 'not-allowed' : 'pointer',
+                        fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0, transition: 'color 0.15s ease',
                       }}
+                      onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
+                      onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
                     >
-                      {isDeleting ? '⏳' : '🗑️'}
+                      {isDeleting ? '⏳' : '✕'}
                     </button>
                   </div>
                 );
